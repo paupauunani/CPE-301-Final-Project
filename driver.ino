@@ -1,3 +1,8 @@
-//Name: Alysia Carr, Paulane Tulop, Shira Rotem, William Chuter-Davies
-//Date: May 9, 2025
-//Final Project
+// Written by Alysia Carr, Paulane Tulop, Shira Rotem, William Chuter-Davies
+
+void setup(void)
+{       
+}
+void loop(void)
+{
+}
