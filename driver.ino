@@ -2,9 +2,9 @@
 
 //What libraries can be used
 //If using on VSC, may need to configure file path for library; Already in Arduino IDE
-//#include <LiquidCrystal.h> - had to comment out
+#include <LiquidCrystal.h>
 
-//Register values for pins need to decide what pins we are using for input/output
+//Register values for pins (need to decide what pins we are using for input/output)
 
 //Register values for Timer Theory
 volatile unsigned char *myTCCR1A = (unsigned char *) 0x80;
@@ -28,17 +28,8 @@ volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
 volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
 
 
-#define FOSC 16000000
-#define BAUD 9600
-
-void USART_init(unsigned char ubrr)
-{       UBRRH = (unsigned char)ubrr >> 8;
-        UBBRL = (unsigned char)ubrr;
-        UCSRB = (1 << RXEN) | (1 << TXEN);
-        UCSRC = (1 << USBS) | (3 << UCSZ0);
-}
 void setup(void)
-{       USART_init((FOSC / (16 * BAUD)) - 1);
+{       
 }
 void loop(void)
 {
