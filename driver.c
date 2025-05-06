@@ -27,23 +27,29 @@ volatile unsigned char* my_ADCSRB = (unsigned char*) 0x7B;
 volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
 volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
 
-#define FOSC 16000000
-#define BAUD 9600
+volatile unsigned char* UBRR0H = (unsigned char*) 0xC5;
+volatile unsigned char* UBRR0L = (unsigned char*) 0xC4;
+volatile unsigned char* UCSR0C = (unsigned char*) 0xC2;
+volatile unsigned char* UCSR0B = (unsigned char*) 0xC1;
 
+#define fosc 16000000 
+#define baud 9600
+
+void usart_init(unsigned int ubbr)
+{       /* set baud rate */
+        UBRR0H = (unsigned char)ubbr >> 8;
+        UBRR0L = (unsigned char)ubbr;
+        /* enable RXEN0 and TXEN0 */
+        UCSR0B = 0b00011000;
+        /* set frame format: 8 data bits, 2 stop bits */
+        UCSR0C = 0b00001110;
+} /* usart_init */
 void setup(void)
-{       USART_init((FOSC / (16 * BAUD)) - 1);
-}
-
+{       USART_Init((fosc / (16 * baud)) - 1);
+} /* setup */
 void loop(void)
 {
-}
-
-void USART_init(unsigned char ubrr)
-{       UBRRH = (unsigned char)ubrr >> 8;
-        UBBRL = (unsigned char)ubrr;
-        UCSRB = (1 << RXEN) | (1 << TXEN);
-        UCSRC = (1 << USBS) | (3 << UCSZ0);
-}
+} /* loop */
 
 void ADC_init()
 {
