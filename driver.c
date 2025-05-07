@@ -59,5 +59,6 @@ void setup(void)
         art_init();
 } /* setup */
 void loop(void)
-{
+{       (void)adc_read(0x00);
+        
 } /* loop */
