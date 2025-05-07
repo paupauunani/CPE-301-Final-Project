@@ -77,7 +77,5 @@ void setup(void)
 } /* setup */
 
 void loop(void)
-{       (void)adc_read(0x00);
-        unsigned char c = usart_rx();
-        usart_tx(c);
+{       
 } /* loop */
