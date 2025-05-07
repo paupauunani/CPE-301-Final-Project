@@ -32,7 +32,6 @@ void adc_init(void)
         *ADCSRA |= 0b10000000;
         /* set pre-scaler */
         *ADCSRA |= 0b00000111;
-        
 } /* adc_init */
 unsigned int adc_read(unsigned char channel)
 {       /* clear input channel */
