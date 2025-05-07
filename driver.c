@@ -18,6 +18,9 @@ volatile unsigned char* myUCSR0C = (unsigned char*) 0xC2;
 volatile unsigned char* myUCSR0B = (unsigned char*) 0xC1;
 volatile unsigned char* myUCSR0A = (unsigned char*) 0xC0;
 
+// const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
+// LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
 void adc_init()
 {       /* clear adc multiple selection register */
         *myADMUX = 0b00000000;
@@ -74,6 +77,7 @@ void usart_tx(unsigned char usart_tx_data)
 void setup(void)
 {       usart_init((16000000 / (16 * 9600)) - 1);
         adc_init();
+        // lcd.begin(16, 2);
 } /* setup */
 
 void loop(void)
