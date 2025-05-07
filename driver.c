@@ -33,11 +33,11 @@ void adc_init(void)
         /* set pre-scaler */
         *myADCSRA |= 0b00000111;
 } /* adc_init */
-unsigned int adc_read(unsigned char channel)
+unsigned int adc_read(unsigned char adc_channel)
 {       /* clear input channel */
         *myADMUX &= 0b11100000;
         /* set input channel */
-        *myADMUX |= channel & 0b00000111;
+        *myADMUX |= adc_channel & 0b00000111;
         /* start adc conversion */
         *myADCSRA |= 0b01000000;
         /* wait until conversion is completed */
@@ -61,3 +61,10 @@ void setup(void)
 void loop(void)
 {       (void)adc_read(0x00);
 } /* loop */
+
+// void putstr(unsigned char* str)
+// {       while(*str)
+//         {       putchar(*str++);
+//         }
+//         putchar('\n');
+// }
