@@ -56,15 +56,20 @@ unsigned int adc_read(unsigned char adc_input_channel)
 } /* adc_read */
 
 void uint_to_str(unsigned int n, unsigned char* str)
-{       unsigned char buf[10];
+{       /* initialise local buffer */
+        unsigned char buf[10];
+        /* initialise local index */
         unsigned int i = 0;
+        /* store digits of n in local buffer */
         do
         {       buf[i++] = n % 10 + '0';
                 n /= 10;
         } while(n > 0);
+        /* reverse buffer into str */
         for(unsigned int j = 0; j < i; ++j)
         {       str[j] = buf[i - j - 1];
         }
+        /* null-terminate str */
         str[i] = '\0';
 } /* uint_to_str */
 
@@ -94,14 +99,18 @@ void usart_tx_char(unsigned char usart_tx_data)
 } /* usart_tx_char */
 
 void usart_tx_str(unsigned char* usart_tx_data)
-{       while(*usart_tx_data)
+{       /* tx until null-terminator is discovered */
+        while(*usart_tx_data)
         {       usart_tx_char(*usart_tx_data++);
         }
 } /* usart_tx_str */
 
 void usart_tx_uint(unsigned int usart_tx_data)
-{       unsigned char str[10];
+{       /* initialise local string */
+        unsigned char str[11];
+        /* convert usart_tx_data into str */
         uint_to_str(usart_tx_data, str);
+        /* tx local string */
         usart_tx_str(str);
 } /* usart_tx_uint */
 
