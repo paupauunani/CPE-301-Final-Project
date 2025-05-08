@@ -99,7 +99,7 @@ void usart_tx_char(unsigned char usart_tx_data)
 } /* usart_tx_char */
 
 void usart_tx_str(unsigned char* usart_tx_data)
-{       /* tx characters of 'usart_tx_data' while null-terminating character is undiscovered */
+{       /* tx 'usart_tx_data' */
         while(*usart_tx_data)
         {       usart_tx_char(*usart_tx_data++);
         }
