@@ -45,9 +45,9 @@ void adc_init()
 unsigned int adc_read(unsigned char adc_input_channel)
 {       /* clear input channel selection */
         *myADMUX &= 0b11100000;
-        /* set input channel selection to adc_input_channel */
+        /* set input channel selection to 'adc_input_channel' */
         *myADMUX |= adc_input_channel & 0b00000111;
-        /* start analog-digital conversion */
+        /* start analog to digital conversion */
         *myADCSRA |= 0b01000000;
         /* wait until conversion is complete */
         while(*myADCSRA & 0b01000000);
@@ -60,27 +60,27 @@ void uint_to_str(unsigned int n, unsigned char* str)
         unsigned char buf[10];
         /* initialise local index */
         unsigned int i = 0;
-        /* store digits of n in local buffer */
+        /* store digits of 'n' in local buffer */
         do
         {       buf[i++] = n % 10 + '0';
                 n /= 10;
         } while(n > 0);
-        /* reverse buffer into str */
+        /* reverse 'buf' into 'str' */
         for(unsigned int j = 0; j < i; ++j)
         {       str[j] = buf[i - j - 1];
         }
-        /* null-terminate str */
+        /* null-terminate 'str' */
         str[i] = '\0';
 } /* uint_to_str */
 
 void usart_init(unsigned int usart_baud_rate)
-{       /* set baud rate hi byte */
+{       /* set baud rate hi byte to 'usart_baud_rate' */
         *myUBRR0H = (unsigned char)usart_baud_rate >> 8;
-        /* set baud rate lo byte */
+        /* set baud rate lo byte to 'usart_baud_rate' */
         *myUBRR0L = (unsigned char)usart_baud_rate;
         /* enable reciever and transmitter */
         *myUCSR0B = 0b00011000;
-        /* set frame format: 8 data bits, 2 stop bits */
+        /* set frame format to 8 data bits, 2 stop bits */
         *myUCSR0C = 0b00001110;
 } /* usart_init */
 
@@ -94,12 +94,12 @@ unsigned char usart_rx(void)
 void usart_tx_char(unsigned char usart_tx_data)
 {       /* wait until there are no data in tx buffer */
         while(!(*myUCSR0A & 0b00100000));
-        /* set tx buffer to usart_tx_data */
+        /* set tx buffer to 'usart_tx_data' */
         *myUDR0 = usart_tx_data;
 } /* usart_tx_char */
 
 void usart_tx_str(unsigned char* usart_tx_data)
-{       /* tx until null-terminator is discovered */
+{       /* tx characters of 'usart_tx_data' while null-terminating character is undiscovered */
         while(*usart_tx_data)
         {       usart_tx_char(*usart_tx_data++);
         }
@@ -108,7 +108,7 @@ void usart_tx_str(unsigned char* usart_tx_data)
 void usart_tx_uint(unsigned int usart_tx_data)
 {       /* initialise local string */
         unsigned char str[11];
-        /* convert usart_tx_data into str */
+        /* convert 'usart_tx_data' into 'str' */
         uint_to_str(usart_tx_data, str);
         /* tx local string */
         usart_tx_str(str);
