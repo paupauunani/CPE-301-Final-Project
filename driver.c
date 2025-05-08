@@ -51,6 +51,19 @@ unsigned int adc_read(unsigned char adc_input_channel)
         return *myADCL | (*myADCH << 8);
 } /* adc_read */
 
+void uint_to_str(unsigned int n, unsigned char* str)
+{       unsigned char buf[10];
+        unsigned int i = 0;
+        do
+        {       buf[i++] = n % 10 + '0';
+                n /= 10;
+        } while(n > 0);
+        for(unsigned int j = 0; j < i; ++j)
+        {       str[j] = buf[i - j - 1];
+        }
+        str[i] = '\0';
+} /* uint_to_str */
+
 void usart_init(unsigned int usart_baud_rate)
 {       /* set baud rate hi byte */
         *myUBRR0H = (unsigned char)usart_baud_rate >> 8;
@@ -82,6 +95,12 @@ void usart_tx_str(unsigned char* usart_tx_data)
         }
 } /* usart_tx_str */
 
+void usart_tx_uint(unsigned int usart_tx_data)
+{       unsigned char str[10];
+        uint_to_str(usart_tx_data, str);
+        usart_tx_str(str);
+} /* usart_tx_uint */
+
 void setup(void)
 {       usart_init(16000000 / 16 / 9600 - 1);
         adc_init();
@@ -90,7 +109,9 @@ void setup(void)
 } /* setup */
 
 void loop(void)
-{       //unsigned char t = read_temp();
+{       unsigned int i = 1234;
+        usart_tx_uint(i);
+        //unsigned char t = read_temp();
         //unsigned char h = read_humid();
         //printLCD(0, 0, "Temp: ", t);
         //printLCD(0, 1, "Humid: ", h);
