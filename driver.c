@@ -49,6 +49,33 @@ unsigned int adc_read(unsigned char adc_input_channel)
         return *myADCL | (*myADCH << 8);
 } /* adc_read */
 
+void revstr(unsigned char* str)
+{       unsigned int len = 0;
+        while(str[len])
+        { ++len;
+        }
+        for(unsigned int i = 0; i < len / 2; ++i)
+        {       unsigned char tmp = str[i];
+                str[i] = str[len - 1 - i];
+                str[len - 1 - i] = tmp;
+        }
+} /* revstr */
+
+void uitostr(unsigned int n, unsigned char* buffer)
+{       unsigned int i = 0;
+        if(!n)
+        {       buffer[i++] = '0';
+        }
+        else
+        {       while(n > 0)
+                {       buffer[i++] = (n % 10) + '0';
+                        n /= 10;
+                }
+        }
+        buffer[i] = '\0';
+        revstr(buffer);
+} /* uitostr */
+
 void usart_init(unsigned int usart_baud_rate)
 {       /* set baud rate hi byte */
         *myUBRR0H = (unsigned char)usart_baud_rate >> 8;
@@ -76,9 +103,16 @@ void usart_tx(unsigned char usart_tx_data)
 
 void usart_tx(unsigned char* usart_tx_data)
 {       while(*usart_tx_data)
-        {       usart_tx(*usart_tx_data++);
+        {       usart_tx(*usart_tx_data);
+                ++usart_tx_data;
         }
         usart_tx('\n');
+} /* usart_tx */
+
+void usart_tx(unsigned int usart_tx_data)
+{       unsigned char buffer[8];
+        uitostr(usart_tx_data, buffer);
+        usart_tx(buffer);
 } /* usart_tx */
 
 void setup(void)
@@ -88,7 +122,5 @@ void setup(void)
 } /* setup */
 
 void loop(void)
-{       unsigned char buffer[8];
-        sprintf(buffer, "%d", adc_read(0x00));
-        usart_tx(buffer);
+{       usart_tx(adc_read(0x00));
 } /* loop */
