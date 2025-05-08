@@ -76,7 +76,6 @@ void usart_tx(unsigned char usart_tx_data)
         *myUDR0 = usart_tx_data;
 } /* usart_tx */
 
-temp-&-humidity-sensor
 /*unsigned char read_temp_humid(){
     int temp = dht.readTemperature();
     unsigned char temperature;
@@ -120,15 +119,13 @@ void setup(void)
 } /* setup */
 
 void loop(void)
-temp-&-humidity-sensor
 {       unsigned char c = usart_rx();
         usart_tx(c);
         //unsigned char t = read_temp();
         //unsigned char h = read_humid();
         //printLCD(0, 0, "Temp: ", t);
         //printLCD(0, 1, "Humid: ", h);
-=======
-{       unsigned char buffer[8];
+       unsigned char buffer[8];
         sprintf(buffer, "%d", adc_read(0x00));
         usart_tx(buffer);
 } /* loop */
