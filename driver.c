@@ -19,6 +19,10 @@ volatile unsigned char* myUCSR0C = (unsigned char*) 0xC2;
 volatile unsigned char* myUCSR0B = (unsigned char*) 0xC1;
 volatile unsigned char* myUCSR0A = (unsigned char*) 0xC0;
 
+/* registers required for gpio functionality */
+volatile unsigned char* myPORTE = (unsigned char*) 0x2E;
+volatile unsigned char* myDDRE = (unsigned char*) 0x2D;
+
 // const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 // LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 // DHT11 dht(A1)
@@ -104,13 +108,18 @@ void usart_tx_uint(unsigned int usart_tx_data)
 void setup(void)
 {       usart_init(16000000 / 16 / 9600 - 1);
         adc_init();
+        /* clear port e data register */
+        *myDDRE = 0b00000000;
+        /* clear port e data direction register */
+        *myDDRE = 0b00000000;
+        /* set digital pin 2 direction to out */
+        *myDDRE |= 0b00010000;
         // lcd.begin(16, 2);
         // dht.setDelay(1000);
 } /* setup */
 
 void loop(void)
-{       usart_tx_uint(adc_read(0));
-        usart_tx_char('\n');
+{       *myPORTE |= 0b00010000;
         //unsigned char t = read_temp();
         //unsigned char h = read_humid();
         //printLCD(0, 0, "Temp: ", t);
