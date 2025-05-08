@@ -2,6 +2,7 @@
 
 /* must manually configure include path if compiling outside Arduino IDE */
 // #include <LiquidCrystal.h>
+// #include <DHT11.h>
 
 /* registers required for adc functionality */
 volatile unsigned char* myADMUX = (unsigned char*) 0x7C;
@@ -20,6 +21,7 @@ volatile unsigned char* myUCSR0A = (unsigned char*) 0xC0;
 
 // const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 // LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+// DHT11 dht(A1)
 
 void adc_init()
 {       /* clear adc multiple selection register */
@@ -119,8 +121,41 @@ void setup(void)
 {       usart_init(16000000 / 16 / 9600 - 1);
         adc_init();
         // lcd.begin(16, 2);
+        // dht.setDelay(1000);
 } /* setup */
 
 void loop(void)
 {       usart_tx(adc_read(0x00));
+        //unsigned char t = read_temp();
+        //unsigned char h = read_humid();
+        //printLCD(0, 0, "Temp: ", t);
+        //printLCD(0, 1, "Humid: ", h);
 } /* loop */
+
+/*unsigned char read_temp_humid(){
+    int temp = dht.readTemperature();
+    unsigned char temperature;
+    if((temp != DHT11::ERROR_CHECKSUM) && (temp != DHT11::ERROR_TIMEOUT)){
+        temperature = <integer to char conversion>
+    } else {
+        temperature = '0';
+    }
+    return temperature;
+} read_temp */
+
+/*unsigned char read_humid(){
+    int humid = dht.readHumidity();
+    unsigned char humidity;
+    if((humid != DHT11::ERROR_CHECKSUM) && (humid != DHT11::ERROR_TIMEOUT)){
+        humidity = <integer to char conversion>
+    } else {
+        humidity = '0';
+    }
+    return humidity;
+} read_humid */
+
+/*void printLCD(int row, int col, str metric, char num){
+    lcd.setCursor(row, col);
+    lcd.print(metric);
+    lcd.print(num);
+} printLCD */
