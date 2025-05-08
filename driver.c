@@ -1,8 +1,9 @@
 /* written by Alysia Carr, Paulane Tulop, Shira Rotem, William Chuter-Davies */
 
-/* must manually configure include path if compiling outside Arduino IDE */
+/* must manually configure include paths if compiling outside Arduino IDE */
+// #include <DHT.h>
 // #include <LiquidCrystal.h>
-// #include <DHT11.h>
+// #include <RTClib.h>
 
 /* registers required for adc functionality */
 volatile unsigned char* myADMUX = (unsigned char*) 0x7C;
@@ -23,9 +24,15 @@ volatile unsigned char* myUCSR0A = (unsigned char*) 0xC0;
 volatile unsigned char* myPORTE = (unsigned char*) 0x2E;
 volatile unsigned char* myDDRE = (unsigned char*) 0x2D;
 
+/* initialise global dht */
+// DHT11 dht
+
+/* initialise global lcd */
 // const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 // LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
-// DHT11 dht(A1)
+
+/* initialise global rtc */
+// RTC_DS1307 rtc;
 
 void adc_init()
 {       /* clear adc multiple selection register */
@@ -117,6 +124,8 @@ void usart_tx_uint(unsigned int usart_tx_data)
 void setup(void)
 {       usart_init(16000000 / 16 / 9600 - 1);
         adc_init();
+        // rtc.begin();
+        // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
         /* clear port e data register */
         *myDDRE = 0b00000000;
         /* clear port e data direction register */
@@ -128,7 +137,10 @@ void setup(void)
 } /* setup */
 
 void loop(void)
-{       *myPORTE |= 0b00010000;
+{       // DateTime now = rtc.now();
+        // usart_tx_uint(now.second());
+        *myPORTE |= 0b00010000;
+        // DateTime now = rtc.now();
         //unsigned char t = read_temp();
         //unsigned char h = read_humid();
         //printLCD(0, 0, "Temp: ", t);
