@@ -125,9 +125,8 @@ void setup(void)
 {       usart_init(16000000 / 16 / 9600 - 1);
         adc_init();
         dht11.begin();
-        // lcd.begin(16, 2);
-        rtc.begin();
-        rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+        // rtc.begin();
+        // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
         /* clear port e data register */
         *myDDRE = 0b00000000;
         /* clear port e data direction register */
@@ -137,16 +136,18 @@ void setup(void)
 } /* setup */
 
 void loop(void)
-{         // read humidity
+{       // DateTime now = rtc.now();
+        /* read humidity */
         float humi  = dht11.readHumidity();
-        // read temperature as Celsius
+        /* read temperature as Celsius */
         float tempC = dht11.readTemperature();
-        // read temperature as Fahrenheit
+        /* read temperature as Fahrenheit */
         float tempF = dht11.readTemperature(true);
-        if (isnan(humi) || isnan(tempC) || isnan(tempF)) {
-                usart_tx_str("Failed to read from DHT11 sensor!");
-              } else {
-                usart_tx_str("DHT11# Humidity: ");
+        if (isnan(humi) || isnan(tempC) || isnan(tempF))
+        {       usart_tx_str("Failed to read from DHT11 sensor!");
+        } 
+        else
+        {       usart_tx_str("DHT11# Humidity: ");
                 usart_tx_uint((unsigned int)humi);
                 usart_tx_char('%');
                 usart_tx_str("  |  "); 
@@ -155,40 +156,6 @@ void loop(void)
                 usart_tx_str("°C ~ ");
                 usart_tx_uint((unsigned int)tempF);
                 usart_tx_str("°F");
-              }
-        
-        // *myPORTE |= 0b00010000;
-        // DateTime now = rtc.now();
-        //unsigned char t = read_temp();
-        //unsigned char h = read_humid();
-        //printLCD(0, 0, "Temp: ", t);
-        //printLCD(0, 1, "Humid: ", h);
+        }
+        *myPORTE |= 0b00010000;
 } /* loop */
-
-/*unsigned char read_temp_humid(){
-    int temp = dht.readTemperature();
-    unsigned char temperature;
-    if((temp != DHT11::ERROR_CHECKSUM) && (temp != DHT11::ERROR_TIMEOUT)){
-        temperature = <integer to char conversion>
-    } else {
-        temperature = '0';
-    }
-    return temperature;
-} read_temp */
-
-/*unsigned char read_humid(){
-    int humid = dht.readHumidity();
-    unsigned char humidity;
-    if((humid != DHT11::ERROR_CHECKSUM) && (humid != DHT11::ERROR_TIMEOUT)){
-        humidity = <integer to char conversion>
-    } else {
-        humidity = '0';
-    }
-    return humidity;
-} read_humid */
-
-/*void printLCD(int row, int col, str metric, char num){
-    lcd.setCursor(row, col);
-    lcd.print(metric);
-    lcd.print(num);
-} printLCD */
