@@ -51,7 +51,7 @@ unsigned int adc_read(unsigned char adc_input_channel)
         return *myADCL | (*myADCH << 8);
 } /* adc_read */
 
-void revstr(unsigned char* str)
+void reverse_str(unsigned char* str)
 {       unsigned int len = 0;
         while(str[len])
         { ++len;
@@ -61,9 +61,9 @@ void revstr(unsigned char* str)
                 str[i] = str[len - 1 - i];
                 str[len - 1 - i] = tmp;
         }
-} /* revstr */
+} /* reverse_str */
 
-void uitostr(unsigned int n, unsigned char* buffer)
+void uint_to_str(unsigned int n, unsigned char* buffer)
 {       unsigned int i = 0;
         if(!n)
         {       buffer[i++] = '0';
@@ -76,7 +76,7 @@ void uitostr(unsigned int n, unsigned char* buffer)
         }
         buffer[i] = '\0';
         revstr(buffer);
-} /* uitostr */
+} /* uint_to_str */
 
 void usart_init(unsigned int usart_baud_rate)
 {       /* set baud rate hi byte */
@@ -96,26 +96,26 @@ unsigned char usart_rx(void)
         return *myUDR0;
 } /* usart_rx */
 
-void usart_tx(unsigned char usart_tx_data)
+void usart_tx_char(unsigned char usart_tx_data)
 {       /* wait until there are no data in tx buffer */
         while(!(*myUCSR0A & 0b00100000));
         /* set tx buffer to usart_tx_data */
         *myUDR0 = usart_tx_data;
-} /* usart_tx */
+} /* usart_tx_char */
 
-void usart_tx(unsigned char* usart_tx_data)
+void usart_tx_str(unsigned char* usart_tx_data)
 {       while(*usart_tx_data)
-        {       usart_tx(*usart_tx_data);
+        {       usart_tx_char(*usart_tx_data);
                 ++usart_tx_data;
         }
-        usart_tx('\n');
-} /* usart_tx */
+        usart_tx_char('\n');
+} /* usart_tx_str */
 
-void usart_tx(unsigned int usart_tx_data)
+void usart_tx_uint(unsigned int usart_tx_data)
 {       unsigned char buffer[8];
-        uitostr(usart_tx_data, buffer);
-        usart_tx(buffer);
-} /* usart_tx */
+        uint_to_str(usart_tx_data, buffer);
+        usart_tx_char(buffer);
+} /* usart_tx_uint */
 
 void setup(void)
 {       usart_init(16000000 / 16 / 9600 - 1);
@@ -125,7 +125,7 @@ void setup(void)
 } /* setup */
 
 void loop(void)
-{       usart_tx(adc_read(0x00));
+{       usart_tx_uint(adc_read(0x00));
         //unsigned char t = read_temp();
         //unsigned char h = read_humid();
         //printLCD(0, 0, "Temp: ", t);
