@@ -109,8 +109,8 @@ void setup(void)
 } /* setup */
 
 void loop(void)
-{       unsigned int i = 1234;
-        usart_tx_uint(i);
+{       usart_tx_uint(adc_read(0));
+        usart_tx_char('\n');
         //unsigned char t = read_temp();
         //unsigned char h = read_humid();
         //printLCD(0, 0, "Temp: ", t);
