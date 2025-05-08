@@ -39,9 +39,9 @@ void adc_init()
 } /* adc_init */
 
 unsigned int adc_read(unsigned char adc_input_channel)
-{       /* clear input selection */
+{       /* clear input channel selection */
         *myADMUX &= 0b11100000;
-        /* set input selection to adc_input_channel */
+        /* set input channel selection to adc_input_channel */
         *myADMUX |= adc_input_channel & 0b00000111;
         /* start analog-digital conversion */
         *myADCSRA |= 0b01000000;
