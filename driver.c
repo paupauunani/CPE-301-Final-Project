@@ -1,7 +1,7 @@
 /* written by Alysia Carr, Paulane Tulop, Shira Rotem, William Chuter-Davies */
 
 /* must manually configure include paths if compiling outside Arduino IDE */
-// #include <DHT.h>
+#include <DHT.h>
 // #include <LiquidCrystal.h>
 // #include <RTClib.h>
 
