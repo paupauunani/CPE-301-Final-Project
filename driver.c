@@ -1,8 +1,8 @@
 /* written by Alysia Carr, Paulane Tulop, Shira Rotem, William Chuter-Davies */
 
 /* must manually configure include paths if compiling outside Arduino IDE */
-#include <DHT.h>
-// #include <LiquidCrystal.h>
+// #include <DHT.h>
+#include <LiquidCrystal.h>
 // #include <RTClib.h>
 
 /* registers required for adc functionality */
@@ -25,14 +25,14 @@ volatile unsigned char* myPORTE = (unsigned char*) 0x2E;
 volatile unsigned char* myDDRE = (unsigned char*) 0x2D;
 
 /* initialise global dht */
-DHT dht11(3, DHT11);
+// DHT dht11(3, DHT11);
 
 /* initialise global lcd */
-// const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
-// LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 /* initialise global rtc */
-RTC_DS1307 rtc;
+// RTC_DS1307 rtc;
 
 void adc_init()
 {       /* clear adc multiple selection register */
@@ -124,7 +124,9 @@ void usart_tx_uint(unsigned int usart_tx_data)
 void setup(void)
 {       usart_init(16000000 / 16 / 9600 - 1);
         adc_init();
-        dht11.begin();
+        // dht11.begin();
+        lcd.begin(16, 2);
+        lcd.print("hello, world!");
         // rtc.begin();
         // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
         /* clear port e data register */
@@ -137,25 +139,5 @@ void setup(void)
 
 void loop(void)
 {       // DateTime now = rtc.now();
-        /* read humidity */
-        float humi  = dht11.readHumidity();
-        /* read temperature as Celsius */
-        float tempC = dht11.readTemperature();
-        /* read temperature as Fahrenheit */
-        float tempF = dht11.readTemperature(true);
-        if (isnan(humi) || isnan(tempC) || isnan(tempF))
-        {       usart_tx_str("Failed to read from DHT11 sensor!");
-        } 
-        else
-        {       usart_tx_str("DHT11# Humidity: ");
-                usart_tx_uint((unsigned int)humi);
-                usart_tx_char('%');
-                usart_tx_str("  |  "); 
-                usart_tx_str("Temperature: ");
-                usart_tx_uint((unsigned int)tempC);
-                usart_tx_str("°C ~ ");
-                usart_tx_uint((unsigned int)tempF);
-                usart_tx_str("°F");
-        }
         *myPORTE |= 0b00010000;
 } /* loop */
