@@ -75,11 +75,12 @@ void usart_tx(unsigned char usart_tx_data)
 } /* usart_tx */
 
 void setup(void)
-{       usart_init((16000000 / (16 * 9600)) - 1);
+{       usart_init(16000000 / 16 / 9600 - 1);
         adc_init();
         // lcd.begin(16, 2);
 } /* setup */
 
 void loop(void)
-{       
+{       unsigned char c = usart_rx();
+        usart_tx(c);
 } /* loop */
