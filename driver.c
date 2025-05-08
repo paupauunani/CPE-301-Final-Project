@@ -80,7 +80,6 @@ void usart_tx_str(unsigned char* usart_tx_data)
 {       while(*usart_tx_data)
         {       usart_tx_char(*usart_tx_data++);
         }
-        usart_tx_char('\n');
 } /* usart_tx_str */
 
 void setup(void)
