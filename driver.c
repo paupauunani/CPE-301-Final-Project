@@ -74,6 +74,13 @@ void usart_tx(unsigned char usart_tx_data)
         *myUDR0 = usart_tx_data;
 } /* usart_tx */
 
+void usart_tx(unsigned char* usart_tx_data)
+{       while(*usart_tx_data)
+        {       usart_tx(*usart_tx_data++);
+        }
+        usart_tx('\n');
+} /* usart_tx */
+
 void setup(void)
 {       usart_init(16000000 / 16 / 9600 - 1);
         adc_init();
@@ -81,6 +88,5 @@ void setup(void)
 } /* setup */
 
 void loop(void)
-{       unsigned char c = usart_rx();
-        usart_tx(c);
+{       
 } /* loop */
