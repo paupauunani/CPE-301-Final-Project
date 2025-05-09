@@ -223,9 +223,10 @@ void loop(void)
                                 usart_tx_char('\n');
                                 system_state_reported = 1;
                         }
-                        if(!system_disabled)
+                        if(system_disabled)
                         {       system_state = 1;
                                 system_state_reported = 0;
+                                system_disabled = 0; // reset the flag so it only acts once
                         }
                         break;
                 /* state: idle */
