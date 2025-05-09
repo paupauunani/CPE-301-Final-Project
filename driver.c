@@ -35,11 +35,9 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 /* initialise global rtc */
 // RTC_DS1307 rtc;
 
-/* initialize global stepper */
-// const int steps_rev = 200;
-// Stepper stepper(steps_rev, 22, 24, 26, 28);
-// bool left = 1;
-// bool right = 0;
+/* initialise global stepper */
+// Stepper stepper(200, 22, 24, 26, 28);
+// bool stepper_flag = 0;
 
 void adc_init()
 {       /* clear adc multiple selection register */
@@ -128,18 +126,18 @@ void usart_tx_uint(unsigned int usart_tx_data)
         usart_tx_str(str);
 } /* usart_tx_uint */
 
-void stepper_move(){
-    if((left == 1) && (right == 0)){
-        stepper.step(steps_rev);
-        left = 0;
-        right = 1;
-    }
-    else if((left == 0) && (right == 1)){
-        stepper.step(-steps_rev);
-        left = 1;
-        right = 0;
-    }
-} /* stepper_move */
+void stepper_step(void)
+{       /* step backward one revolution if 'stepper_flag' is true */
+        if(stepper_flag)
+        {       stepper.step(-200);
+        }
+         /* step forward one revolution if 'stepper_flag' is false */
+        else
+        {       stepper.step(200);
+        }
+        /* toggle 'stepper_flag' */
+        stepper_flag = !stepper_flag;
+} /* stepper_step */
 
 void setup(void)
 {       usart_init(16000000 / 16 / 9600 - 1);
