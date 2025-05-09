@@ -40,6 +40,8 @@ volatile unsigned char* myPINL = (unsigned char*) 0x109;
 
 /* initialize global dht */
 DHT dht11(40, DHT11);
+float humidity;
+float temperature;
 
 /* initialize global lcd */
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
@@ -64,9 +66,6 @@ volatile bool button_state = false;
 enum Color{YELLOW, RED, BLUE, GREEN};
 Color color = YELLOW;
 
-const int red_pin = 9;
-const int green_pin = 8;
-const int blue_pin = 7;
 
 void adc_init()
 {       /* clear adc multiple selection register */
@@ -193,32 +192,63 @@ void start_isr(void){
     button_state = true;
 }
 
+void state_change(void){
+    usart_tx_str("State is now ");
+
+    switch(state){
+        case DISABLED:
+        usart_tx_str("DISABLED. \n");
+            break;
+        case IDLE:
+            usart_tx_str("IDLE. \n");
+            break;
+        case ERROR:
+            usart_tx_str("ERROR. \n");
+            break;
+        case RUNNING:
+            usart_tx_str("RUNNING. \n");
+            break;
+        default:
+            break;
+    }
+}
+
+void dht_info(void){
+    temperature = dht11.readTemperature();
+    humidity = dht11.readHumidity();
+}
+
+void rtc_date(void){
+    DateTime now = rtc.now();
+    usart_tx_uint(now.year());
+}
+
 void setup(void)
 {       usart_init(16000000 / 16 / 9600 - 1);
         adc_init();
         // dht11.begin();
         lcd.begin(16, 2);
         lcd.setCursor(0,0);
-        lcd.print("hello, world!");
         /* stepper speed set to 60 rpm */
         stepper.setSpeed(60);
-        // rtc.begin();
-        // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-        /* clear port l data register */
-        *myPORTH = 0b00000000;
-        /* clear port l data direction register */
-        *myDDRH = 0b00000000;
-        /* set digital pin 40 direction to out */
-        *myDDRH |= 0b01110000;
-        *myDDRD = 0b00000000;
-        *myPORTD = 0b00001000;
+        rtc.begin();
+        rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+        
+        *myPORTH = 0b00000000; //clear data
+        *myDDRH = 0b00000000; //clear data
+        *myDDRH |= 0b01110000; //sets LED pins as output
+
+        *myDDRD = 0b00000000; //start button as input
+        *myPORTD |= 0b00001000; //pullup resistor
 
         attachInterrupt(digitalPinToInterrupt(18), start_isr, CHANGE);
+        state_change();
 } /* setup */
 
 void loop(void)
-{       // DateTime now = rtc.now();
-        switch(state){
+{
+    unsigned long current_mil = millis();    
+    switch(state){
             case DISABLED:
                 //Yellow LED should be on
                 set_color(YELLOW);
@@ -227,6 +257,8 @@ void loop(void)
                 if(button_state){
                     button_state = false;
                     state = IDLE;
+                    state_change();
+                    rtc_date();
                 }
                 break;
             case IDLE:
