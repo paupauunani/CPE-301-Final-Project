@@ -22,8 +22,8 @@ volatile unsigned char* myUCSR0B = (unsigned char*) 0xC1;
 volatile unsigned char* myUCSR0A = (unsigned char*) 0xC0;
 
 /* registers required for gpio functionality */
-volatile unsigned char* myPORTD = (unsinged char*) 0x2B;
-volatile unsigned char* myDDRD = (unsinged char*) 0x2A;
+volatile unsigned char* myPORTD = (unsigned char*) 0x2B;
+volatile unsigned char* myDDRD = (unsigned char*) 0x2A;
 volatile unsigned char* myPORTH = (unsigned char*) 0x102;
 volatile unsigned char* myDDRH = (unsigned char*) 0x101;
 volatile unsigned char* myPORTL = (unsigned char*) 0x10B;
@@ -187,7 +187,7 @@ void setup(void)
         /* set interrupt service routine one to 'system_power_isr' */
         attachInterrupt(digitalPinToInterrupt(18), system_power_isr, CHANGE);
         /* set interrupt service routine two to 'system_reset_isr' */
-        attachInterrupt(digitalPinToInterrupt(16), system_reset_isr, CHANGE);
+        attachInterrupt(digitalPinToInterrupt(19), system_reset_isr, CHANGE);
         /* clear port d data register */
         *myPORTD = 0b00000000;
         /* clear port d data direction register */
@@ -261,7 +261,9 @@ void loop(void)
                         *myPORTH = 0b01000000;
                         *myPORTL &= 0b0111111;
                         lcd.clear();
-                        lcd.print("ERROR: Water level too low");
+                        lcd.print("ERROR: Water lvl");
+                        lcd.setCursor(7,1);
+                        lcd.print("is low");
                         if(!system_state_reported)
                         {       usart_tx_str("System ERROR: ");
                                 rtc_tx_time();
@@ -301,9 +303,9 @@ void system_power_isr(void)
 } /* system_power_isr */
 
 void system_reset_isr(void)
-{       if(system_state == 2 && !(adc_read(0) < 20))
+{     
+  if(system_state == 2 && !(adc_read(0) < 20))
         {       system_state = 1;
                 system_state_reported = 0;
-                Serial.println("hello from reset isr");
         }
 } /* void system_reset_isr(void) */
