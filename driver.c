@@ -34,14 +34,16 @@ volatile unsigned char* myPORTH = (unsigned char*) 0x102;
 volatile unsigned char* myDDRH = (unsigned char*) 0x101;
 volatile unsigned char* myPORTD = (unsigned char*) 0x2B;
 volatile unsigned char* myDDRD = (unsigned char*) 0x2A;
+volatile unsigned char* myPIND = (unsigned char*) 0x29;
 volatile unsigned char* myPORTL = (unsigned char*) 0x10B;
 volatile unsigned char* myDDRL = (unsigned char*) 0x10A;
 volatile unsigned char* myPINL = (unsigned char*) 0x109;
 
 /* initialize global dht */
-DHT dht11(40, DHT11);
-float humidity = 9;
-float temperature 87;
+DHT dht11(43, DHT11);
+
+float humidity;
+float temperature;
 
 /* initialize global lcd */
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
@@ -67,6 +69,8 @@ volatile bool button_state = false;
 enum Color{YELLOW, RED, BLUE, GREEN};
 Color color = YELLOW;
 
+unsigned long prev_mil = 0;
+const long interval = 60000;
 
 void adc_init()
 {       /* clear adc multiple selection register */
@@ -214,19 +218,16 @@ void state_change(void){
     }
 }
 
-void dht_info(void){
-    temperature = dht11.readTemperature();
-    humidity = dht11.readHumidity();
-}
-
 void rtc_date(void){
     DateTime now = rtc.now();
+    usart_tx_char('\n');
     usart_tx_uint(now.month());
     usart_tx_char('/');
     usart_tx_uint(now.day());
     usart_tx_char('/');
     usart_tx_uint(now.year());
 
+    //Day will not properly
     usart_tx_char(' (');
     usart_tx_str(now.dayOfTheWeek());
     usart_tx_char(') ');
@@ -246,7 +247,7 @@ void reset_lcd(void){
 
 void lcd_info(void){
     reset_lcd();
-    lcd.write("Temp: ")
+    lcd.write("Temp: ");
     lcd.print(temperature);
 
     lcd.setCursor(0,1);
@@ -257,7 +258,7 @@ void lcd_info(void){
 void setup(void)
 {       usart_init(16000000 / 16 / 9600 - 1);
         adc_init();
-        // dht11.begin();
+        dht11.begin();
         lcd.begin(16, 2);
         lcd.setCursor(0,0);
         /* stepper speed set to 60 rpm */
@@ -271,7 +272,11 @@ void setup(void)
 
         *myPORTD = 0b00000000; //clear
         *myDDRD = 0b00000000; //start button as input
-        *myPORTD = 0b00010000; //pullup resistor
+        *myDDRD |= 0b00010000; //pullup resistor
+
+        /**myPORTL = 0b00000000;
+        *myDDRL = 0b00000000;
+        *myDDRL |= 0b00100000;*/
 
         attachInterrupt(digitalPinToInterrupt(18), start_isr, CHANGE);
         rtc_date();
@@ -280,12 +285,14 @@ void setup(void)
 
 void loop(void)
 {   
+    unsigned long current_mil = millis();
     switch(state){
             case DISABLED:
                 //Yellow LED should be on
                 set_color(YELLOW);
                 //No monitoring of temperature or water should be performed
                 //Start button should be monitored using ISR
+                //This button is very fickle. DISABLED state works
                 if(button_state){
                     button_state = false;
                     state = IDLE;
@@ -296,14 +303,23 @@ void loop(void)
             case IDLE:
                 //Green LED should be on
                 set_color(GREEN);
-                //Exact time stamp should record transition times
+              
                 //Water level should be continuously monitored
                 water_level = adc_read(0);
+                
                 lcd_info();
+                //Goes to ERROR if water is low
                 if(water_level < water_low){
                     state = ERROR;
                     rtc_date();
                     state_change();
+                }
+                //Exact time stamp should record transition times
+                if(current_mil - prev_mil >= interval){
+                  prev_mil = current_mil;
+                  temperature = dht11.readTemperature();
+                  humidity = dht11.readHumidity();
+                  lcd_info();
                 }
 
                 break;
@@ -311,8 +327,15 @@ void loop(void)
                 //Red LED should be on
                 set_color(RED);
                 //Motor should be off and not start regardless of temperature
-                //Reset button should trigger a change to IDLE stage if water is above threshold
                 //Error message displayed on LCD
+                //Reset button should trigger a change to IDLE stage if water is above threshold
+                if(((*myPINL & 0b00100000) == 0) && (water_level > water_low)){
+                  reset_lcd();
+                  state = DISABLED;
+                  rtc_date();
+                  state_change();
+                  Serial.println("reset button is pressed");
+                }
                 break;
             case RUNNING:
                 //Blue LED should be on
@@ -320,6 +343,11 @@ void loop(void)
                 //Fan motor should be on
                 //System should transition to IDLE as soon as temp drops below threshold
                 //System should transition to ERROR if water becomes too low
+                if(water_level < water_low){
+                  state = ERROR;
+                  rtc_date();
+                  state_change();
+                }
                 break;
             default:
                 break;
