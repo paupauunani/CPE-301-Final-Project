@@ -34,10 +34,8 @@ volatile unsigned char* myPORTH = (unsigned char*) 0x102;
 volatile unsigned char* myDDRH = (unsigned char*) 0x101;
 volatile unsigned char* myPORTD = (unsigned char*) 0x2B;
 volatile unsigned char* myDDRD = (unsigned char*) 0x2A;
-volatile unsigned char* myPIND = (unsigned char*) 0x29;
 volatile unsigned char* myPORTL = (unsigned char*) 0x10B;
 volatile unsigned char* myDDRL = (unsigned char*) 0x10A;
-volatile unsigned char* myPINL = (unsigned char*) 0x109;
 
 /* initialize global dht */
 DHT dht11(43, DHT11);
