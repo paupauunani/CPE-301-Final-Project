@@ -1,10 +1,10 @@
 /* written by Alysia Carr, Paulane Tulop, Shira Rotem, William Chuter-Davies */
 
 /* must manually configure include paths if compiling outside Arduino IDE */
-// #include <DHT.h>
+#include <DHT.h>
 #include <LiquidCrystal.h>
-// #include <RTClib.h>
-// #include <Stepper.h>
+#include <RTClib.h>
+#include <Stepper.h>
 
 /* registers required for adc functionality */
 volatile unsigned char* myADMUX = (unsigned char*) 0x7C;
@@ -21,23 +21,31 @@ volatile unsigned char* myUCSR0C = (unsigned char*) 0xC2;
 volatile unsigned char* myUCSR0B = (unsigned char*) 0xC1;
 volatile unsigned char* myUCSR0A = (unsigned char*) 0xC0;
 
+/* registers required for timer functionality */
+volatile unsigned char* myTCCR1A = (unsigned char*) 0x80;
+volatile unsigned char* myTCCR1B = (unsigned char*) 0x81;
+volatile unsigned char* myTCCR1C = (unsigned char*) 0x82;
+volatile unsigned char* myTIMSK1 = (unsigned char*) 0x6F;
+volatile unsigned char* myTIFR1 = (unsigned char*) 0x36;
+volatile unsigned int* myTCNT1 = (unsigned int*) 0x84;
+
 /* registers required for gpio functionality */
-volatile unsigned char* myPORTE = (unsigned char*) 0x2E;
-volatile unsigned char* myDDRE = (unsigned char*) 0x2D;
+volatile unsigned char* myPORTL = (unsigned char*) 0x10B;
+volatile unsigned char* myDDRL = (unsigned char*) 0x10A;
 
 /* initialise global dht */
-// DHT dht11(3, DHT11);
+DHT dht11(__, DHT11);
 
 /* initialise global lcd */
-const int rs = 9, en = 8, d4 = 4, d5 = 5, d6 = 6, d7 = 7;
+const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 /* initialise global rtc */
-// RTC_DS1307 rtc;
+RTC_DS1307 rtc;
 
 /* initialise global stepper */
-// Stepper stepper(200, 22, 24, 26, 28);
-// bool stepper_flag = 0;
+Stepper stepper(200, 22, 24, 26, 28);
+bool stepper_flag = 0;
 
 void adc_init()
 {       /* clear adc multiple selection register */
@@ -151,14 +159,14 @@ void setup(void)
         // rtc.begin();
         // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
         /* clear port e data register */
-        *myDDRE = 0b00000000;
+        *myPORTL = 0b00000000;
         /* clear port e data direction register */
-        *myDDRE = 0b00000000;
+        *myDDRL = 0b00000000;
         /* set digital pin 2 direction to out */
-        *myDDRE |= 0b00010000;
+        *myDDRL |= 0b10000000;
 } /* setup */
 
 void loop(void)
 {       // DateTime now = rtc.now();
-        *myPORTE |= 0b00010000;
+        *myPORTL |= 0b10000000;
 } /* loop */
