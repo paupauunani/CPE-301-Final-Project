@@ -32,6 +32,8 @@ volatile unsigned int* myTCNT1 = (unsigned int*) 0x84;
 /* registers required for gpio functionality */
 volatile unsigned char* myPORTH = (unsigned char*) 0x102;
 volatile unsigned char* myDDRH = (unsigned char*) 0x101;
+volatile unsigned char* myPORTD = (unsigned char*) 0x2B;
+volatile unsigned char* myDDRD = (unsigned char*) 0x2A;
 volatile unsigned char* myPORTL = (unsigned char*) 0x10B;
 volatile unsigned char* myDDRL = (unsigned char*) 0x10A;
 volatile unsigned char* myPINL = (unsigned char*) 0x109;
@@ -45,6 +47,9 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 /* initialize global rtc */
 RTC_DS1307 rtc;
+
+const int temp_threshold = 79;
+const int water_low = 20;
 
 /* initialize global stepper */
 Stepper stepper(200, 22, 24, 26, 28);
@@ -184,6 +189,10 @@ void set_color(Color c){
     }
 } /* set_color */
 
+void start_isr(void){
+    button_state = true;
+}
+
 void setup(void)
 {       usart_init(16000000 / 16 / 9600 - 1);
         adc_init();
@@ -201,6 +210,10 @@ void setup(void)
         *myDDRH = 0b00000000;
         /* set digital pin 40 direction to out */
         *myDDRH |= 0b01110000;
+        *myDDRD = 0b00000000;
+        *myPORTD = 0b00001000;
+
+        attachInterrupt(digitalPinToInterrupt(18), start_isr, CHANGE);
 } /* setup */
 
 void loop(void)
@@ -209,18 +222,32 @@ void loop(void)
             case DISABLED:
                 //Yellow LED should be on
                 set_color(YELLOW);
+                //No monitoring of temperature or water should be performed
+                //Start button should be monitored using ISR
+                if(button_state){
+                    button_state = false;
+                    state = IDLE;
+                }
                 break;
             case IDLE:
                 //Green LED should be on
                 set_color(GREEN);
+                //Exact time stamp should record transition times
+                //Water level should be continuously monitored
                 break;
             case ERROR:
                 //Red LED should be on
                 set_color(RED);
+                //Motor should be off and not start regardless of temperature
+                //Reset button should trigger a change to IDLE stage if water is above threshold
+                //Error message displayed on LCD
                 break;
             case RUNNING:
                 //Blue LED should be on
                 set_color(BLUE);
+                //Fan motor should be on
+                //System should transition to IDLE as soon as temp drops below threshold
+                //System should transition to ERROR if water becomes too low
                 break;
             default:
                 break;
