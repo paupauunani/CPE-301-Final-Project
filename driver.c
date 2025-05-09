@@ -40,8 +40,8 @@ volatile unsigned char* myPINL = (unsigned char*) 0x109;
 
 /* initialize global dht */
 DHT dht11(40, DHT11);
-float humidity;
-float temperature;
+float humidity = 9;
+float temperature 87;
 
 /* initialize global lcd */
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
@@ -52,6 +52,7 @@ RTC_DS1307 rtc;
 
 const int temp_threshold = 79;
 const int water_low = 20;
+unsigned int water_level;
 
 /* initialize global stepper */
 Stepper stepper(200, 22, 24, 26, 28);
@@ -220,7 +221,37 @@ void dht_info(void){
 
 void rtc_date(void){
     DateTime now = rtc.now();
+    usart_tx_uint(now.month());
+    usart_tx_char('/');
+    usart_tx_uint(now.day());
+    usart_tx_char('/');
     usart_tx_uint(now.year());
+
+    usart_tx_char(' (');
+    usart_tx_str(now.dayOfTheWeek());
+    usart_tx_char(') ');
+
+    usart_tx_uint(now.hour());
+    usart_tx_char(':');
+    usart_tx_uint(now.minute());
+    usart_tx_char(':');
+    usart_tx_uint(now.second());
+    usart_tx_char('\n');
+}
+
+void reset_lcd(void){
+    lcd.clear();
+    lcd.setCursor(0,0);
+}
+
+void lcd_info(void){
+    reset_lcd();
+    lcd.write("Temp: ")
+    lcd.print(temperature);
+
+    lcd.setCursor(0,1);
+    lcd.write("Humid: ");
+    lcd.print(humidity);
 }
 
 void setup(void)
@@ -230,7 +261,7 @@ void setup(void)
         lcd.begin(16, 2);
         lcd.setCursor(0,0);
         /* stepper speed set to 60 rpm */
-        stepper.setSpeed(60);
+        //stepper.setSpeed(60);
         rtc.begin();
         rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
         
@@ -238,16 +269,17 @@ void setup(void)
         *myDDRH = 0b00000000; //clear data
         *myDDRH |= 0b01110000; //sets LED pins as output
 
+        *myPORTD = 0b00000000; //clear
         *myDDRD = 0b00000000; //start button as input
-        *myPORTD |= 0b00001000; //pullup resistor
+        *myPORTD = 0b00010000; //pullup resistor
 
         attachInterrupt(digitalPinToInterrupt(18), start_isr, CHANGE);
+        rtc_date();
         state_change();
 } /* setup */
 
 void loop(void)
-{
-    unsigned long current_mil = millis();    
+{   
     switch(state){
             case DISABLED:
                 //Yellow LED should be on
@@ -257,8 +289,8 @@ void loop(void)
                 if(button_state){
                     button_state = false;
                     state = IDLE;
-                    state_change();
                     rtc_date();
+                    state_change();
                 }
                 break;
             case IDLE:
@@ -266,6 +298,14 @@ void loop(void)
                 set_color(GREEN);
                 //Exact time stamp should record transition times
                 //Water level should be continuously monitored
+                water_level = adc_read(0);
+                lcd_info();
+                if(water_level < water_low){
+                    state = ERROR;
+                    rtc_date();
+                    state_change();
+                }
+
                 break;
             case ERROR:
                 //Red LED should be on
