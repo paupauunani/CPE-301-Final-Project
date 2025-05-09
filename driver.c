@@ -22,6 +22,8 @@ volatile unsigned char* myUCSR0B = (unsigned char*) 0xC1;
 volatile unsigned char* myUCSR0A = (unsigned char*) 0xC0;
 
 /* registers required for gpio functionality */
+volatile unsigned char* myPORTD = (unsinged char*) 0x2B;
+volatile unsigned char* myDDRD = (unsinged char*) 0x2A;
 volatile unsigned char* myPORTH = (unsigned char*) 0x102;
 volatile unsigned char* myDDRH = (unsigned char*) 0x101;
 volatile unsigned char* myPORTL = (unsigned char*) 0x10B;
@@ -186,10 +188,18 @@ void setup(void)
         attachInterrupt(digitalPinToInterrupt(18), system_power_isr, CHANGE);
         /* set interrupt service routine two to 'system_reset_isr' */
         attachInterrupt(digitalPinToInterrupt(16), system_reset_isr, CHANGE);
+        /* clear port d data register */
+        *myPORTD = 0b00000000;
+        /* clear port d data direction register */
+        *myDDRD = 0b00000000;
+        /* set digital pin 18 to recieve input with pullup */
+        *myPORTD |= 0b00001000;
         /* clear port h data register */
         *myPORTH = 0b00000000;
         /* clear port h data direction register */
         *myDDRH = 0b00000000;
+        /* set digital pin 16 to recieve input with pullup */
+        *myPORTH |= 0b00000010;
         /* set digital pins 7, 8, and 9 directions to out */
         *myDDRH |= 0b01110000;
         /* clear port l data register */
@@ -197,7 +207,7 @@ void setup(void)
         /* clear port l data direction register */
         *myDDRL = 0b00000000;
         /* set digital pin 45 to recieve input with pullup */
-        *myPORTL = 0b00001000;
+        *myPORTL |= 0b00001000;
         /* set digital pin 42 direction to out */
         *myDDRL |= 0b10000000;
 } /* setup */
