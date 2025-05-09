@@ -4,6 +4,7 @@
 // #include <DHT.h>
 #include <LiquidCrystal.h>
 // #include <RTClib.h>
+// #include <Stepper.h>
 
 /* registers required for adc functionality */
 volatile unsigned char* myADMUX = (unsigned char*) 0x7C;
@@ -28,11 +29,17 @@ volatile unsigned char* myDDRE = (unsigned char*) 0x2D;
 // DHT dht11(3, DHT11);
 
 /* initialise global lcd */
-const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
+const int rs = 9, en = 8, d4 = 4, d5 = 5, d6 = 6, d7 = 7;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 /* initialise global rtc */
 // RTC_DS1307 rtc;
+
+/* initialize global stepper */
+// const int steps_rev = 200;
+// Stepper stepper(steps_rev, 22, 24, 26, 28);
+// bool left = 1;
+// bool right = 0;
 
 void adc_init()
 {       /* clear adc multiple selection register */
@@ -121,12 +128,28 @@ void usart_tx_uint(unsigned int usart_tx_data)
         usart_tx_str(str);
 } /* usart_tx_uint */
 
+void stepper_move(){
+    if((left == 1) && (right == 0)){
+        stepper.step(steps_rev);
+        left = 0;
+        right = 1;
+    }
+    else if((left == 0) && (right == 1)){
+        stepper.step(-steps_rev);
+        left = 1;
+        right = 0;
+    }
+} /* stepper_move */
+
 void setup(void)
 {       usart_init(16000000 / 16 / 9600 - 1);
         adc_init();
         // dht11.begin();
         lcd.begin(16, 2);
+        lcd.setCursor(0,0);
         lcd.print("hello, world!");
+        /* stepper speed set to 60 rpm */
+        stepper.setSpeed(60);
         // rtc.begin();
         // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
         /* clear port e data register */
