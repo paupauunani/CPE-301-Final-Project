@@ -203,17 +203,20 @@ void setup(void)
 } /* setup */
 
 void loop(void)
-{       lcd.clear();
-        lcd.write("Tem: ");
-        lcd.print((unsigned int)dht11.readTemperature());
-        lcd.setCursor(0,1);
-        lcd.write("Hum: ");
-        lcd.print((unsigned int)dht11.readHumidity());
+{       if(system_state != 0)
+        {       lcd.clear();
+                lcd.write("Tem: ");
+                lcd.print((unsigned int)dht11.readTemperature());
+                lcd.setCursor(0,1);
+                lcd.write("Hum: ");
+                lcd.print((unsigned int)dht11.readHumidity());
+        }
         switch(system_state)
         {       /* state: disabled */
                 case 0:
                         /* set led colour to yellow */
                         *myPORTH = 0b01100000;
+                        *myPORTL &= 0b01111111;
                         if(!system_state_reported)
                         {       usart_tx_str("System DISABLED: ");
                                 rtc_tx_time();
@@ -244,26 +247,20 @@ void loop(void)
                 case 2:
                         /* set led colour to red */
                         *myPORTH = 0b01000000;
+                        *myPORTL &= 0b0111111;
+                        lcd.clear();
+                        lcd.print("ERROR: Water level too low");
                         if(!system_state_reported)
                         {       usart_tx_str("System ERROR: ");
                                 rtc_tx_time();
                                 usart_tx_char('\n');
                                 system_state_reported = 1;
                         }
-                        *myPORTL &= 0b0111111;
-                        lcd.clear();
-                        lcd.print("ERROR: Water level too low");
                         break;
                 /* state: running */
                 case 3:
                         /* set led colour to blue */
                         *myPORTH = 0b00010000;
-                        if(!system_state_reported)
-                        {       usart_tx_str("System RUNNING: ");
-                                rtc_tx_time();
-                                usart_tx_char('\n');
-                                system_state_reported = 1;
-                        }
                         *myPORTL |= 0b10000000;
                         if(dht11.readTemperature() < 75)
                         {       system_state = 1;
@@ -272,6 +269,12 @@ void loop(void)
                         if(adc_read(0) < 20)
                         {       system_state = 2;
                                 system_state_reported = 0;
+                        }
+                        if(!system_state_reported)
+                        {       usart_tx_str("System RUNNING: ");
+                                rtc_tx_time();
+                                usart_tx_char('\n');
+                                system_state_reported = 1;
                         }
                         break;
                 default:
