@@ -277,6 +277,7 @@ void loop(void)
                 default:
                         break;
         }
+        delay(1000);
 } /* loop */
 
 void system_power_isr(void)
