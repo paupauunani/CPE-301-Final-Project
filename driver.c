@@ -21,14 +21,6 @@ volatile unsigned char* myUCSR0C = (unsigned char*) 0xC2;
 volatile unsigned char* myUCSR0B = (unsigned char*) 0xC1;
 volatile unsigned char* myUCSR0A = (unsigned char*) 0xC0;
 
-/* registers required for timer functionality */
-volatile unsigned char* myTCCR1A = (unsigned char*) 0x80;
-volatile unsigned char* myTCCR1B = (unsigned char*) 0x81;
-volatile unsigned char* myTCCR1C = (unsigned char*) 0x82;
-volatile unsigned char* myTIMSK1 = (unsigned char*) 0x6F;
-volatile unsigned char* myTIFR1 = (unsigned char*) 0x36;
-volatile unsigned int* myTCNT1 = (unsigned int*) 0x84;
-
 /* registers required for gpio functionality */
 volatile unsigned char* myPORTH = (unsigned char*) 0x102;
 volatile unsigned char* myDDRH = (unsigned char*) 0x101;
@@ -48,11 +40,11 @@ RTC_DS1307 rtc;
 /* initialise global stepper */
 Stepper stepper(200, 23, 25, 27, 29);
 
-/* initialise stepper displacement flag */
-bool stepper_displaced = false;
-
-/* initialise system disabled flag */
-bool system_disabled = false;
+/* initialise program flags */
+unsigned int stepper_displaced = 0;
+unsigned int system_disabled = 0;
+unsigned int system_state = 0;
+unsigned int system_state_reported = 0;
 
 void adc_init()
 {       /* clear adc multiple selection register */
@@ -162,13 +154,15 @@ void stepper_step(void)
 {       /* step backward one revolution if 'stepper_displaced' is true */
         if(stepper_displaced)
         {       stepper.step(-200);
+                /* toggle 'stepper_displaced' */
+                stepper_displaced = 0;
         }
         /* step forward one revolution if 'stepper_displaced' is false */
         else
         {       stepper.step(200);
+                /* toggle 'stepper_displaced' */
+                stepper_displaced = 1;
         }
-        /* toggle 'stepper_displaced' */
-        stepper_displaced = !stepper_displaced;
 } /* stepper_step */
 
 void setup(void)
@@ -188,8 +182,10 @@ void setup(void)
         rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
         /* set stepper speed to 60 rpm */
         stepper.setSpeed(60);
-        /* set interrupt service routine to 'isr' */
-        attachInterrupt(digitalPinToInterrupt(18), isr, CHANGE);
+        /* set interrupt service routine one to 'system_power_isr' */
+        attachInterrupt(digitalPinToInterrupt(18), system_power_isr, CHANGE);
+        /* set interrupt service routine two to 'system_reset_isr' */
+        attachInterrupt(digitalPinToInterrupt(16), system_reset_isr, CHANGE);
         /* clear port h data register */
         *myPORTH = 0b00000000;
         /* clear port h data direction register */
@@ -200,62 +196,92 @@ void setup(void)
         *myPORTL = 0b00000000;
         /* clear port l data direction register */
         *myDDRL = 0b00000000;
+        /* set digital pin 45 to recieve input with pullup */
+        *myPORTL = 0b00001000;
         /* set digital pin 42 direction to out */
         *myDDRL |= 0b10000000;
 } /* setup */
 
 void loop(void)
-{       unsigned int system_state = 0;
+{       
+        
         switch(system_state)
         {       /* state: disabled */
                 case 0:
                         /* set led colour to yellow */
                         *myPORTH = 0b01100000;
-                        usart_tx_str("System DISABLED: ")
-                        rtc_tx_time();
-                        usart_tx_char('\n');
+                        if(!system_state_reported)
+                        {       usart_tx_str("System DISABLED: ")
+                                rtc_tx_time();
+                                usart_tx_char('\n');
+                                system_state_reported = 1;
+                        }
                         if(!system_disabled)
                         {       system_state = 1;
+                                system_state_reported = 0;
                         }
+                        break;
                 /* state: idle */
                 case 1:
                         /* set led colour to green */
                         *myPORTH = 0b00100000;
-                        usart_tx_str("System IDLE: ")
-                        rtc_tx_time();
-                        usart_tx_char('\n');
+                        if(!system_state_reported)
+                        {       usart_tx_str("System IDLE: ")
+                                rtc_tx_time();
+                                usart_tx_char('\n');
+                                system_state_reported = 1;
+                        }
                         if(adc_read(0) < 20)
                         {       system_state = 2;
+                                system_state_reported = 0;
                         }
+                        break;
                 /* state: error */
                 case 2:
                         /* set led colour to red */
                         *myPORTH = 0b01000000;
-                        usart_tx_str("System ERROR: ")
-                        rtc_tx_time();
-                        usart_tx_char('\n');
+                        if(!system_state_reported)
+                        {       usart_tx_str("System ERROR: ")
+                                rtc_tx_time();
+                                usart_tx_char('\n');
+                                system_state_reported = 1;
+                        }
                         *myPORTL &= 0b0111111;
                         lcd.print("ERROR: Water level too low")
+                        break;
                 /* state: running */
                 case 3:
                         /* set led colour to blue */
                         *myPORTH = 0b00010000;
-                        usart_tx_str("System RUNNING: ")
-                        rtc_tx_time();
-                        usart_tx_char('\n');
-                        *myPORTL |= *myPORTL &= 0b10000000;
+                        if(!system_state_reported)
+                        {       usart_tx_str("System RUNNING: ")
+                                rtc_tx_time();
+                                usart_tx_char('\n');
+                                system_state_reported = 1;
+                        }
+                        *myPORTL |= 0b10000000;
                         if(dht11.readTemperature() < 75)
                         {       system_state = 1;
+                                system_state_reported = 0;
                         }
                         if(adc_read(0) < 20)
                         {       system_state = 2;
+                                system_state_reported = 0;
                         }
+                        break;
                 default:
                         break;
         }
 } /* loop */
 
-void isr(void)
-{       /* toogle system disabled flag */
+void system_power_isr(void)
+{       /* toggle system disabled flag */
         system_disabled = !system_disabled; 
-} /* isr */
+} /* system_power_isr */
+
+void system_reset_isr(void)
+{       if(system_state == 2 && !(adc_read(0) < 20))
+        {       system_state = 1;
+                system_state_reported = 0;
+        }
+} /* void system_reset_isr(void) */
