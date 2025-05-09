@@ -22,8 +22,8 @@ volatile unsigned char* myUCSR0B = (unsigned char*) 0xC1;
 volatile unsigned char* myUCSR0A = (unsigned char*) 0xC0;
 
 /* registers required for gpio functionality */
-volatile unsigned char* myPORTD = (unsinged char*) 0x2B;
-volatile unsigned char* myDDRD = (unsinged char*) 0x2A;
+volatile unsigned char* myPORTD = (unsigned char*) 0x2B;
+volatile unsigned char* myDDRD = (unsigned char*) 0x2A;
 volatile unsigned char* myPORTH = (unsigned char*) 0x102;
 volatile unsigned char* myDDRH = (unsigned char*) 0x101;
 volatile unsigned char* myPORTL = (unsigned char*) 0x10B;
