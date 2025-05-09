@@ -237,7 +237,6 @@ void loop(void)
                         if(system_disabled)
                         {       system_state = 1;
                                 system_state_reported = 0;
-                                Serial.println("button was pressed");
                         }
                         break;
                 /* state: idle */
