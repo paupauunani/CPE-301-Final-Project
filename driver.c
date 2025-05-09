@@ -32,43 +32,27 @@ volatile unsigned int* myTCNT1 = (unsigned int*) 0x84;
 /* registers required for gpio functionality */
 volatile unsigned char* myPORTH = (unsigned char*) 0x102;
 volatile unsigned char* myDDRH = (unsigned char*) 0x101;
-volatile unsigned char* myPORTD = (unsigned char*) 0x2B;
-volatile unsigned char* myDDRD = (unsigned char*) 0x2A;
 volatile unsigned char* myPORTL = (unsigned char*) 0x10B;
 volatile unsigned char* myDDRL = (unsigned char*) 0x10A;
 
-/* initialize global dht */
+/* initialise global dht */
 DHT dht11(43, DHT11);
 
-float humidity;
-float temperature;
-
-/* initialize global lcd */
+/* initialise global lcd */
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
-/* initialize global rtc */
+/* initialise global rtc */
 RTC_DS1307 rtc;
 
-const int temp_threshold = 79;
-const int water_low = 20;
-unsigned int water_level;
+/* initialise global stepper */
+Stepper stepper(200, 23, 25, 27, 29);
 
-/* initialize global stepper */
-Stepper stepper(200, 22, 24, 26, 28);
-bool stepper_flag = 0;
+/* initialise stepper displacement flag */
+bool stepper_displaced = false;
 
-/* initialize interrupt states*/
-enum State{DISABLED, IDLE, ERROR, RUNNING};
-State state = DISABLED;
-volatile bool button_state = false;
-
-/* define color states of the LED */
-enum Color{YELLOW, RED, BLUE, GREEN};
-Color color = YELLOW;
-
-unsigned long prev_mil = 0;
-const long interval = 60000;
+/* initialise system disabled flag */
+bool system_disabled = false;
 
 void adc_init()
 {       /* clear adc multiple selection register */
@@ -123,7 +107,7 @@ void usart_init(unsigned int usart_baud_rate)
         *myUBRR0L = (unsigned char)usart_baud_rate;
         /* enable reciever and transmitter */
         *myUCSR0B = 0b00011000;
-        /* set frame format to 8 data bits, 2 stop bits */
+        /* set frame format to 8 data bits; 2 stop bits */
         *myUCSR0C = 0b00001110;
 } /* usart_init */
 
@@ -153,201 +137,125 @@ void usart_tx_uint(unsigned int usart_tx_data)
         unsigned char str[11];
         /* convert 'usart_tx_data' into 'str' */
         uint_to_str(usart_tx_data, str);
-        /* tx local string */
+        /* tx 'str' */
         usart_tx_str(str);
 } /* usart_tx_uint */
 
+void rtc_tx_time(void)
+{       /* initialise DateTime object */
+        DateTime now = rtc.now();
+        /* tx 'now' as "M / D / Y | H : M : S" */
+        usart_tx_uint(now.month());
+        usart_tx_str(" / ");
+        usart_tx_uint(now.day());
+        usart_tx_str(" / ");
+        usart_tx_uint(now.year());
+        usart_tx_str(" | ");
+        usart_tx_uint(now.hour());
+        usart_tx_str(" : ");
+        usart_tx_uint(now.minute());
+        usart_tx_str(" : ");
+        usart_tx_uint(now.second());
+} /* rtc_tx_time */
+
 void stepper_step(void)
-{       /* step backward one revolution if 'stepper_flag' is true */
-        if(stepper_flag)
+{       /* step backward one revolution if 'stepper_displaced' is true */
+        if(stepper_displaced)
         {       stepper.step(-200);
         }
-         /* step forward one revolution if 'stepper_flag' is false */
+        /* step forward one revolution if 'stepper_displaced' is false */
         else
         {       stepper.step(200);
         }
-        /* toggle 'stepper_flag' */
-        stepper_flag = !stepper_flag;
+        /* toggle 'stepper_displaced' */
+        stepper_displaced = !stepper_displaced;
 } /* stepper_step */
 
-void set_color(Color c){
-    *myPORTH = 0b00000000;
-
-    switch(c){
-        case RED:
-            *myPORTH |= 0b01000000;
-            break;
-        case GREEN:
-            *myPORTH |= 0b00100000;
-            break;
-        case BLUE:
-            *myPORTH |= 0b00010000;
-            break;
-        case YELLOW:
-            *myPORTH |= 0b01100000;
-            break;
-        default:
-            break;
-    }
-} /* set_color */
-
-void start_isr(void){
-    button_state = true;
-}
-
-void state_change(void){
-    usart_tx_str("State is now ");
-
-    switch(state){
-        case DISABLED:
-        usart_tx_str("DISABLED. \n");
-            break;
-        case IDLE:
-            usart_tx_str("IDLE. \n");
-            break;
-        case ERROR:
-            usart_tx_str("ERROR. \n");
-            break;
-        case RUNNING:
-            usart_tx_str("RUNNING. \n");
-            break;
-        default:
-            break;
-    }
-}
-
-void rtc_date(void){
-    DateTime now = rtc.now();
-    usart_tx_char('\n');
-    usart_tx_uint(now.month());
-    usart_tx_char('/');
-    usart_tx_uint(now.day());
-    usart_tx_char('/');
-    usart_tx_uint(now.year());
-
-    //Day will not properly
-    usart_tx_char(' (');
-    usart_tx_str(now.dayOfTheWeek());
-    usart_tx_char(') ');
-
-    usart_tx_uint(now.hour());
-    usart_tx_char(':');
-    usart_tx_uint(now.minute());
-    usart_tx_char(':');
-    usart_tx_uint(now.second());
-    usart_tx_char('\n');
-}
-
-void reset_lcd(void){
-    lcd.clear();
-    lcd.setCursor(0,0);
-}
-
-void lcd_info(void){
-    reset_lcd();
-    lcd.write("Temp: ");
-    lcd.print(temperature);
-
-    lcd.setCursor(0,1);
-    lcd.write("Humid: ");
-    lcd.print(humidity);
-}
-
 void setup(void)
-{       usart_init(16000000 / 16 / 9600 - 1);
+{       /* initialise usart */
+        usart_init(16000000 / 16 / 9600 - 1);
+        /* initialise adc */
         adc_init();
+        /* initialise dht */
         dht11.begin();
+        /* initialise lcd */
         lcd.begin(16, 2);
+        /* set initial cursor position to 0,0 */
         lcd.setCursor(0,0);
-        /* stepper speed set to 60 rpm */
-        //stepper.setSpeed(60);
+        /* initialise rtc */
         rtc.begin();
+        /* set initial rtc time to compile time */
         rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-        
-        *myPORTH = 0b00000000; //clear data
-        *myDDRH = 0b00000000; //clear data
-        *myDDRH |= 0b01110000; //sets LED pins as output
-
-        *myPORTD = 0b00000000; //clear
-        *myDDRD = 0b00000000; //start button as input
-        *myDDRD |= 0b00010000; //pullup resistor
-
-        /**myPORTL = 0b00000000;
+        /* set stepper speed to 60 rpm */
+        stepper.setSpeed(60);
+        /* set interrupt service routine to 'isr' */
+        attachInterrupt(digitalPinToInterrupt(18), isr, CHANGE);
+        /* clear port h data register */
+        *myPORTH = 0b00000000;
+        /* clear port h data direction register */
+        *myDDRH = 0b00000000;
+        /* set digital pins 7, 8, and 9 directions to out */
+        *myDDRH |= 0b01110000;
+        /* clear port l data register */
+        *myPORTL = 0b00000000;
+        /* clear port l data direction register */
         *myDDRL = 0b00000000;
-        *myDDRL |= 0b00100000;*/
-
-        attachInterrupt(digitalPinToInterrupt(18), start_isr, CHANGE);
-        rtc_date();
-        state_change();
+        /* set digital pin 42 direction to out */
+        *myDDRL |= 0b10000000;
 } /* setup */
 
 void loop(void)
-{   
-    unsigned long current_mil = millis();
-    switch(state){
-            case DISABLED:
-                //Yellow LED should be on
-                set_color(YELLOW);
-                //No monitoring of temperature or water should be performed
-                //Start button should be monitored using ISR
-                //This button is very fickle. DISABLED state works
-                if(button_state){
-                    button_state = false;
-                    state = IDLE;
-                    rtc_date();
-                    state_change();
-                }
-                break;
-            case IDLE:
-                //Green LED should be on
-                set_color(GREEN);
-              
-                //Water level should be continuously monitored
-                water_level = adc_read(0);
-                
-                lcd_info();
-                //Goes to ERROR if water is low
-                if(water_level < water_low){
-                    state = ERROR;
-                    rtc_date();
-                    state_change();
-                }
-                //Exact time stamp should record transition times
-                if(current_mil - prev_mil >= interval){
-                  prev_mil = current_mil;
-                  temperature = dht11.readTemperature();
-                  humidity = dht11.readHumidity();
-                  lcd_info();
-                }
-
-                break;
-            case ERROR:
-                //Red LED should be on
-                set_color(RED);
-                //Motor should be off and not start regardless of temperature
-                //Error message displayed on LCD
-                //Reset button should trigger a change to IDLE stage if water is above threshold
-                if(((*myPINL & 0b00100000) == 0) && (water_level > water_low)){
-                  reset_lcd();
-                  state = DISABLED;
-                  rtc_date();
-                  state_change();
-                  Serial.println("reset button is pressed");
-                }
-                break;
-            case RUNNING:
-                //Blue LED should be on
-                set_color(BLUE);
-                //Fan motor should be on
-                //System should transition to IDLE as soon as temp drops below threshold
-                //System should transition to ERROR if water becomes too low
-                if(water_level < water_low){
-                  state = ERROR;
-                  rtc_date();
-                  state_change();
-                }
-                break;
-            default:
-                break;
+{       unsigned int system_state = 0;
+        switch(system_state)
+        {       /* state: disabled */
+                case 0:
+                        /* set led colour to yellow */
+                        *myPORTH = 0b01100000;
+                        usart_tx_str("System DISABLED: ")
+                        rtc_tx_time();
+                        usart_tx_char('\n');
+                        if(!system_disabled)
+                        {       system_state = 1;
+                        }
+                /* state: idle */
+                case 1:
+                        /* set led colour to green */
+                        *myPORTH = 0b00100000;
+                        usart_tx_str("System IDLE: ")
+                        rtc_tx_time();
+                        usart_tx_char('\n');
+                        if(adc_read(0) < 20)
+                        {       system_state = 2;
+                        }
+                /* state: error */
+                case 2:
+                        /* set led colour to red */
+                        *myPORTH = 0b01000000;
+                        usart_tx_str("System ERROR: ")
+                        rtc_tx_time();
+                        usart_tx_char('\n');
+                        *myPORTL &= 0b0111111;
+                        lcd.print("ERROR: Water level too low")
+                /* state: running */
+                case 3:
+                        /* set led colour to blue */
+                        *myPORTH = 0b00010000;
+                        usart_tx_str("System RUNNING: ")
+                        rtc_tx_time();
+                        usart_tx_char('\n');
+                        *myPORTL |= *myPORTL &= 0b10000000;
+                        if(dht11.readTemperature() < 75)
+                        {       system_state = 1;
+                        }
+                        if(adc_read(0) < 20)
+                        {       system_state = 2;
+                        }
+                default:
+                        break;
         }
 } /* loop */
+
+void isr(void)
+{       /* toogle system disabled flag */
+        system_disabled = !system_disabled; 
+} /* isr */
