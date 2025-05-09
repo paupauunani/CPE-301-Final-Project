@@ -30,22 +30,38 @@ volatile unsigned char* myTIFR1 = (unsigned char*) 0x36;
 volatile unsigned int* myTCNT1 = (unsigned int*) 0x84;
 
 /* registers required for gpio functionality */
+volatile unsigned char* myPORTH = (unsigned char*) 0x102;
+volatile unsigned char* myDDRH = (unsigned char*) 0x101;
 volatile unsigned char* myPORTL = (unsigned char*) 0x10B;
 volatile unsigned char* myDDRL = (unsigned char*) 0x10A;
+volatile unsigned char* myPINL = (unsigned char*) 0x109;
 
-/* initialise global dht */
-DHT dht11(__, DHT11);
+/* initialize global dht */
+DHT dht11(40, DHT11);
 
-/* initialise global lcd */
+/* initialize global lcd */
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
-/* initialise global rtc */
+/* initialize global rtc */
 RTC_DS1307 rtc;
 
-/* initialise global stepper */
+/* initialize global stepper */
 Stepper stepper(200, 22, 24, 26, 28);
 bool stepper_flag = 0;
+
+/* initialize interrupt states*/
+enum State{DISABLED, IDLE, ERROR, RUNNING};
+State state = DISABLED;
+volatile bool button_state = false;
+
+/* define color states of the LED */
+enum Color{YELLOW, RED, BLUE, GREEN};
+Color color = YELLOW;
+
+const int red_pin = 9;
+const int green_pin = 8;
+const int blue_pin = 7;
 
 void adc_init()
 {       /* clear adc multiple selection register */
@@ -147,6 +163,27 @@ void stepper_step(void)
         stepper_flag = !stepper_flag;
 } /* stepper_step */
 
+void set_color(Color c){
+    *myPORTH = 0b00000000;
+
+    switch(c){
+        case RED:
+            *myPORTH |= 0b01000000;
+            break;
+        case GREEN:
+            *myPORTH |= 0b00100000;
+            break;
+        case BLUE:
+            *myPORTH |= 0b00010000;
+            break;
+        case YELLOW:
+            *myPORTH |= 0b01100000;
+            break;
+        default:
+            break;
+    }
+} /* set_color */
+
 void setup(void)
 {       usart_init(16000000 / 16 / 9600 - 1);
         adc_init();
@@ -158,15 +195,34 @@ void setup(void)
         stepper.setSpeed(60);
         // rtc.begin();
         // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-        /* clear port e data register */
-        *myPORTL = 0b00000000;
-        /* clear port e data direction register */
-        *myDDRL = 0b00000000;
-        /* set digital pin 2 direction to out */
-        *myDDRL |= 0b10000000;
+        /* clear port l data register */
+        *myPORTH = 0b00000000;
+        /* clear port l data direction register */
+        *myDDRH = 0b00000000;
+        /* set digital pin 40 direction to out */
+        *myDDRH |= 0b01110000;
 } /* setup */
 
 void loop(void)
 {       // DateTime now = rtc.now();
-        *myPORTL |= 0b10000000;
+        switch(state){
+            case DISABLED:
+                //Yellow LED should be on
+                set_color(YELLOW);
+                break;
+            case IDLE:
+                //Green LED should be on
+                set_color(GREEN);
+                break;
+            case ERROR:
+                //Red LED should be on
+                set_color(RED);
+                break;
+            case RUNNING:
+                //Blue LED should be on
+                set_color(BLUE);
+                break;
+            default:
+                break;
+        }
 } /* loop */
