@@ -203,8 +203,12 @@ void setup(void)
 } /* setup */
 
 void loop(void)
-{       
-        
+{       lcd.clear();
+        lcd.write("Tem: ");
+        lcd.print(d11.readTemperature());
+        lcd.setCursor(0,1);
+        lcd.write("Hum: ");
+        lcd.print(d11.readHumidity());
         switch(system_state)
         {       /* state: disabled */
                 case 0:
