@@ -205,17 +205,17 @@ void setup(void)
 void loop(void)
 {       lcd.clear();
         lcd.write("Tem: ");
-        lcd.print(d11.readTemperature());
+        lcd.print((unsigned int)dht11.readTemperature());
         lcd.setCursor(0,1);
         lcd.write("Hum: ");
-        lcd.print(d11.readHumidity());
+        lcd.print((unsigned int)dht11.readHumidity());
         switch(system_state)
         {       /* state: disabled */
                 case 0:
                         /* set led colour to yellow */
                         *myPORTH = 0b01100000;
                         if(!system_state_reported)
-                        {       usart_tx_str("System DISABLED: ")
+                        {       usart_tx_str("System DISABLED: ");
                                 rtc_tx_time();
                                 usart_tx_char('\n');
                                 system_state_reported = 1;
@@ -230,7 +230,7 @@ void loop(void)
                         /* set led colour to green */
                         *myPORTH = 0b00100000;
                         if(!system_state_reported)
-                        {       usart_tx_str("System IDLE: ")
+                        {       usart_tx_str("System IDLE: ");
                                 rtc_tx_time();
                                 usart_tx_char('\n');
                                 system_state_reported = 1;
@@ -245,20 +245,21 @@ void loop(void)
                         /* set led colour to red */
                         *myPORTH = 0b01000000;
                         if(!system_state_reported)
-                        {       usart_tx_str("System ERROR: ")
+                        {       usart_tx_str("System ERROR: ");
                                 rtc_tx_time();
                                 usart_tx_char('\n');
                                 system_state_reported = 1;
                         }
                         *myPORTL &= 0b0111111;
-                        lcd.print("ERROR: Water level too low")
+                        lcd.clear();
+                        lcd.print("ERROR: Water level too low");
                         break;
                 /* state: running */
                 case 3:
                         /* set led colour to blue */
                         *myPORTH = 0b00010000;
                         if(!system_state_reported)
-                        {       usart_tx_str("System RUNNING: ")
+                        {       usart_tx_str("System RUNNING: ");
                                 rtc_tx_time();
                                 usart_tx_char('\n');
                                 system_state_reported = 1;
