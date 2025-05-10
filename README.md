@@ -8,4 +8,4 @@ a variety of components. This project is encompasses variety of different concep
 in Spring '25 CPE-301.
 
 **Video Link:**
-https://drive.google.com/file/d/1MGhEsh4q4Z3MfMe9cWVf7t52FSX8TmJT/view?usp=sharing 
+https://drive.google.com/file/d/1bnxWgj2JXy70bVC7gwg5EzC-R7THyGpE/view?usp=sharing 
