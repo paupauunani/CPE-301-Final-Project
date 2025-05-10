@@ -1,4 +1,4 @@
-**Group Name:** TBD
+# CPE 301 Final Project: Swamp Cooler
 
 **Group Members:** Alysia Carr, Paulane Tulop, Shira Rotem, William Chuter-Davies
 
