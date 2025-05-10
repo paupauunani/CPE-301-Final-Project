@@ -28,9 +28,10 @@ volatile unsigned char* myPORTH = (unsigned char*) 0x102;
 volatile unsigned char* myDDRH = (unsigned char*) 0x101;
 volatile unsigned char* myPORTL = (unsigned char*) 0x10B;
 volatile unsigned char* myDDRL = (unsigned char*) 0x10A;
+volatile unsigned char* myPINL = (unsigned char*) 0x109;
 
 /* initialise global dht */
-DHT dht11(43, DHT11);
+DHT dht11(53, DHT11);
 
 /* initialise global lcd */
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
@@ -38,6 +39,7 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 /* initialise global rtc */
 RTC_DS1307 rtc;
+unsigned long prev_mil = 0;
 
 /* initialise global stepper */
 Stepper stepper(200, 23, 25, 27, 29);
@@ -175,6 +177,7 @@ void setup(void)
         /* initialise dht */
         dht11.begin();
         /* initialise lcd */
+        stepper.setSpeed(30);
         lcd.begin(16, 2);
         /* set initial cursor position to 0,0 */
         lcd.setCursor(0,0);
@@ -182,8 +185,6 @@ void setup(void)
         rtc.begin();
         /* set initial rtc time to compile time */
         rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-        /* set stepper speed to 60 rpm */
-        stepper.setSpeed(60);
         /* set interrupt service routine one to 'system_power_isr' */
         attachInterrupt(digitalPinToInterrupt(18), system_power_isr, CHANGE);
         /* set interrupt service routine two to 'system_reset_isr' */
@@ -207,23 +208,24 @@ void setup(void)
         /* clear port l data direction register */
         *myDDRL = 0b00000000;
         /* set digital pin 45 to recieve input with pullup */
-        *myPORTL |= 0b00001000;
+        *myPORTL |= 0b00010000;
         /* set digital pin 42 direction to out */
         *myDDRL |= 0b10000000;
 } /* setup */
 
 void loop(void)
-{       if(system_state != 0)
-        {       lcd.clear();
-                lcd.write("Tem: ");
-                lcd.print((unsigned int)dht11.readTemperature());
-                lcd.setCursor(0,1);
-                lcd.write("Hum: ");
-                lcd.print((unsigned int)dht11.readHumidity());
-        }
-        switch(system_state)
-        {       /* state: disabled */
-                case 0:
+{     
+          if(system_state != 0)
+            {       lcd.clear();
+                    lcd.write("Tem: ");
+                    lcd.print((unsigned int)dht11.readTemperature());
+                    lcd.setCursor(0,1);
+                    lcd.write("Hum: ");
+                    lcd.print((unsigned int)dht11.readHumidity());
+            } 
+          switch(system_state)
+            {       /* state: disabled */
+                  case 0:
                         /* set led colour to yellow */
                         *myPORTH = 0b01100000;
                         *myPORTL &= 0b01111111;
@@ -232,15 +234,14 @@ void loop(void)
                                 rtc_tx_time();
                                 usart_tx_char('\n');
                                 system_state_reported = 1;
-        
                         }
                         if(system_disabled)
                         {       system_state = 1;
                                 system_state_reported = 0;
                         }
                         break;
-                /* state: idle */
-                case 1:
+                  /* state: idle */
+                  case 1:
                         /* set led colour to green */
                         *myPORTH = 0b00100000;
                         if(!system_state_reported)
@@ -253,9 +254,13 @@ void loop(void)
                         {       system_state = 2;
                                 system_state_reported = 0;
                         }
+                        if(dht11.readTemperature() > 20){
+                          system_state = 3;
+                          system_state_reported = 1;
+                        }
                         break;
-                /* state: error */
-                case 2:
+                  /* state: error */
+                  case 2:
                         /* set led colour to red */
                         *myPORTH = 0b01000000;
                         *myPORTL &= 0b0111111;
@@ -270,17 +275,25 @@ void loop(void)
                                 system_state_reported = 1;
                         }
                         break;
-                /* state: running */
-                case 3:
+                  /* state: running */
+                  case 3:
                         /* set led colour to blue */
                         *myPORTH = 0b00010000;
                         *myPORTL |= 0b10000000;
-                        if(dht11.readTemperature() < 75)
-                        {       system_state = 1;
+                        if(!system_state_reported)
+                        {       usart_tx_str("System RUNNING: ");
+                                rtc_tx_time();
+                                usart_tx_char('\n');
+                                system_state_reported = 1;
+                        }
+                        if(dht11.readTemperature() < 20)
+                        {       *myPORTL &= 0b01111111;
+                                system_state = 1;
                                 system_state_reported = 0;
                         }
                         if(adc_read(0) < 20)
-                        {       system_state = 2;
+                        {       *myPORTL &= 0b01111111;
+                                system_state = 2;
                                 system_state_reported = 0;
                         }
                         if(!system_state_reported)
@@ -289,11 +302,15 @@ void loop(void)
                                 usart_tx_char('\n');
                                 system_state_reported = 1;
                         }
+                        if(!(*myPINL & 0b00010000)){
+                          stepper_step();
+                        }
                         break;
-                default:
+                  default:
                         break;
-        }
-        delay(1000);
+            }
+          delay(1000);
+        
 } /* loop */
 
 void system_power_isr(void)
